@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat JS 1x1 com Arquivos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4CAF50; /* Verde */
+            --primary-dark: #388E3C;
+            --background-light: #f4f7f6;
+            --background-dark: #e8e8e8;
+            --text-color-dark: #333;
+            --text-color-light: #fff;
+            --border-color: #ddd;
+            --chat-bubble-mine: #DCF8C6; /* Verde claro WhatsApp */
+            --chat-bubble-other: #FFF;   /* Branco */
+            --shadow-light: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-dark: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-color-dark);
+        }
+
+        #chat-container {
+            width: 450px;
+            max-width: 95%;
+            background: var(--chat-bubble-other);
+            border-radius: 12px;
+            box-shadow: var(--shadow-light);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 80vh; /* Altura fixa para o chat */
+            min-height: 400px;
+        }
+
+        #chat-header {
+            background-color: var(--primary-color);
+            color: var(--text-color-light);
+            padding: 15px 20px;
+            font-size: 1.2em;
+            font-weight: 700;
+            border-bottom: 1px solid var(--primary-dark);
+            text-align: center;
+        }
+
+        #messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: var(--background-light);
+            -webkit-overflow-scrolling: touch; /* Melhora o scroll em iOS */
+        }
+
+        .message-wrapper {
+            display: flex;
+            width: 100%;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 20px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .message.mine {
+            background-color: var(--chat-bubble-mine);
+            color: var(--text-color-dark);
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 5px; /* Estilo bolha */
+        }
+
+        .message.other {
+            background-color: var(--chat-bubble-other);
+            color: var(--text-color-dark);
+            align-self: flex-start;
+            margin-right: auto;
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 5px; /* Estilo bolha */
+        }
+
+        .message .sender-info {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 3px;
+            display: block;
+            font-weight: 500;
+        }
+        .message.mine .sender-info {
+            text-align: right;
+        }
+        .message.other .sender-info {
+            text-align: left;
+        }
+        .message .timestamp {
+            font-size: 0.7em;
+            color: #999;
+            margin-top: 5px;
+            display: block;
+            text-align: right;
+        }
+
+        .message-file-name {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .message-file-icon {
+            display: inline-block;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        .message-file-link {
+            color: var(--primary-dark);
+            text-decoration: none;
+            word-break: break-all;
+        }
+        .message-file-link:hover {
+            text-decoration: underline;
+        }
+
+        #message-input-area {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--chat-bubble-other);
+            align-items: center;
+        }
+
+        #file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #eee;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.2s;
+            font-size: 1.5em; /* Tamanho do ícone */
+            color: #666;
+        }
+        #file-input-label:hover {
+            background-color: #ddd;
+        }
+        #file-input {
+            display: none; /* Esconde o input de arquivo padrão */
+        }
+
+        #message-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 25px;
+            margin-right: 10px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #message-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        #send-button {
+            background-color: var(--primary-color);
+            color: var(--text-color-light);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 700;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        #send-button:hover {
+            background-color: var(--primary-dark);
+        }
+        #send-button:active {
+            transform: scale(0.98);
+        }
+
+        /* Indicador de status */
+        .status-message {
+            text-align: center;
+            font-style: italic;
+            color: #777;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        /* Responsividade */
+        @media (max-width: 600px) {
+            #chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            body {
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-header">
+            <span id="chat-status">Aguardando Conexão...</span>
+        </div>
+        <div id="messages">
+            </div>
+        <div id="message-input-area">
+            <input type="file" id="file-input" accept="image/*, application/pdf, .doc, .docx, .xls, .xlsx, .txt">
+            <label for="file-input" id="file-input-label">&#128206;</label> <input type="text" id="message-input" placeholder="Digite sua mensagem...">
+            <button id="send-button">Enviar</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // --- Configuração da Conexão ---
+        const SERVER_ADDRESS = 'http://localhost:3000'; // Ajuste se seu servidor estiver em outro IP/Porta
+        const socket = io(SERVER_ADDRESS);
+
+        // --- Elementos do DOM ---
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const fileInput = document.getElementById('file-input');
+        const chatStatusSpan = document.getElementById('chat-status');
+
+        let myUsername = `Você`; // Será atualizado para o nome do outro usuário
+        let peerUsername = 'Conectando...';
+
+        // --- Funções Auxiliares ---
+
+        function formatTimestamp(date) {
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
+        function addMessage(text, type, senderName = '', timestamp = new Date()) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('message-wrapper');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', type);
+
+            if (senderName && type === 'other') { // Mostra o nome do remetente apenas para mensagens 'other'
+                const senderInfo = document.createElement('span');
+                senderInfo.classList.add('sender-info');
+                senderInfo.textContent = senderName;
+                messageDiv.appendChild(senderInfo);
+            }
+
+            const textNode = document.createElement('span');
+            textNode.textContent = text;
+            messageDiv.appendChild(textNode);
+
+            const timeStampSpan = document.createElement('span');
+            timeStampSpan.classList.add('timestamp');
+            timeStampSpan.textContent = formatTimestamp(new Date(timestamp));
+            messageDiv.appendChild(timeStampSpan);
+
+            messageWrapper.appendChild(messageDiv);
+            messagesDiv.appendChild(messageWrapper);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Rola para o final
+        }
+
+        function addFileMessage(filename, fileUrl, type, senderName = '', timestamp = new Date()) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('message-wrapper');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', type);
+
+            if (senderName && type === 'other') {
+                const senderInfo = document.createElement('span');
+                senderInfo.classList.add('sender-info');
+                senderInfo.textContent = senderName;
+                messageDiv.appendChild(senderInfo);
+            }
+
+            const fileNameSpan = document.createElement('span');
+            fileNameSpan.classList.add('message-file-name');
+            fileNameSpan.innerHTML = `&#128230; ${filename}`; // Ícone de pasta/documento
+            messageDiv.appendChild(fileNameSpan);
+
+            const fileLink = document.createElement('a');
+            fileLink.href = fileUrl;
+            fileLink.target = '_blank';
+            fileLink.classList.add('message-file-link');
+            fileLink.textContent = 'Baixar arquivo';
+            messageDiv.appendChild(fileLink);
+
+            const timeStampSpan = document.createElement('span');
+            timeStampSpan.classList.add('timestamp');
+            timeStampSpan.textContent = formatTimestamp(new Date(timestamp));
+            messageDiv.appendChild(timeStampSpan);
+
+            messageWrapper.appendChild(messageDiv);
+            messagesDiv.appendChild(messageWrapper);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addStatusMessage(text) {
+            const statusDiv = document.createElement('div');
+            statusDiv.classList.add('status-message');
+            statusDiv.textContent = text;
+            messagesDiv.appendChild(statusDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // --- Event Listeners ---
+
+        // Enviar mensagem de texto
+        sendButton.addEventListener('click', () => {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                const timestamp = new Date().toISOString();
+                socket.emit('chat message', { text: messageText, timestamp: timestamp });
+                addMessage(messageText, 'mine', myUsername, timestamp);
+                messageInput.value = '';
+            }
+        });
+
+        // Enviar mensagem ao pressionar Enter
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendButton.click();
+            }
+        });
+
+        // Enviar arquivo
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                // Limite de tamanho de arquivo (ex: 5MB) para envio via Socket.IO
+                const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+                if (file.size > MAX_FILE_SIZE) {
+                    alert('Arquivo muito grande! O limite é de 5MB para envio direto. Para arquivos maiores, seria necessário um método de upload via HTTP.');
+                    fileInput.value = ''; // Limpa o input
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const fileBuffer = event.target.result; // ArrayBuffer do arquivo
+                    const timestamp = new Date().toISOString();
+
+                    socket.emit('file message', {
+                        filename: file.name,
+                        fileBuffer: fileBuffer,
+                        fileType: file.type,
+                        timestamp: timestamp
+                    });
+                    
+                    // Para exibir o próprio arquivo enviado, cria um URL temporário para o blob
+                    const blob = new Blob([fileBuffer], { type: file.type });
+                    const fileUrl = URL.createObjectURL(blob);
+                    addFileMessage(file.name, fileUrl, 'mine', myUsername, timestamp);
+                    fileInput.value = ''; // Limpa o input
+                };
+                reader.readAsArrayBuffer(file); // Lê o arquivo como ArrayBuffer
+            }
+        });
+
+        // --- Eventos do Socket.IO ---
+
+        socket.on('connect', () => {
+            console.log('Conectado ao servidor Socket.IO.');
+            chatStatusSpan.textContent = 'Conectado. Aguardando par...';
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Desconectado do servidor.');
+            chatStatusSpan.textContent = 'Desconectado';
+            addStatusMessage('Você foi desconectado do chat.');
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('Erro de conexão do Socket.IO:', err.message);
+            chatStatusSpan.textContent = 'Erro de Conexão';
+            addStatusMessage(`Não foi possível conectar ao servidor: ${err.message}. Verifique se o servidor está rodando.`);
+        });
+
+        socket.on('waiting for peer', (msg) => {
+            chatStatusSpan.textContent = 'Aguardando o outro usuário...';
+            addStatusMessage(msg);
+        });
+
+        socket.on('chat ready', (data) => {
+            peerUsername = data.peerUsername;
+            chatStatusSpan.textContent = `Chat com ${peerUsername}`;
+            addStatusMessage(`O chat foi iniciado com ${peerUsername}!`);
+        });
+
+        socket.on('chat message', (data) => {
+            // Verifica se a mensagem não veio do próprio cliente
+            if (data.senderId !== socket.id) {
+                addMessage(data.text, 'other', data.username, data.timestamp);
+            }
+        });
+
+        socket.on('file message', (data) => {
+            // Verifica se o arquivo não veio do próprio cliente
+            if (data.senderId !== socket.id) {
+                // Converte o ArrayBuffer recebido de volta para Blob para criar um URL
+                const blob = new Blob([data.fileBuffer], { type: data.fileType });
+                const fileUrl = URL.createObjectURL(blob);
+                addFileMessage(data.filename, fileUrl, 'other', data.username, data.timestamp);
+            }
+        });
+
+        socket.on('peer disconnected', (msg) => {
+            chatStatusSpan.textContent = 'Par Desconectado';
+            addStatusMessage(msg);
+            // Poderíamos adicionar lógica para tentar reconectar ou esperar um novo par
+        });
+
+        socket.on('system message', (msg) => {
+            addStatusMessage(msg);
+        });
+    </script>
+</body>
+</html>
